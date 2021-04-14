@@ -1,2 +1,4 @@
 # Exlcluding virtual environments
 .venv
+venv
+.vscode
