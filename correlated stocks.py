@@ -29,3 +29,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    
+#DISCK and DISCA are highly correlated
+#XEL and CMS highly correlated (both energy)
