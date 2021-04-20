@@ -7,7 +7,7 @@ def open_files(name):
     data = np.zeros(shape=(1260, 1))
     df = pd.DataFrame(data)
     for filename in os.listdir(name):
-        directory = os.join(name + filename)
+        directory = os.join(name, filename)
         col = pd.read_csv(directory, usecols=["open"])
         df[filename] = col
     df.drop(df.columns[[0]], axis=1, inplace=True)
