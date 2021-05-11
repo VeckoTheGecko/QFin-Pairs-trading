@@ -1,0 +1,23 @@
+APA APA Corporation
+BKR Baker Hughes Co
+COG Cabot Oil & Gas
+CVX Chevron Corp.
+COP ConocoPhillips
+DVN Devon Energy
+FANG Diamondback Energy
+EOG EOG Resources
+XOM Exxon Mobil Corp.
+HAL Halliburton Co.
+HES Hess Corporation
+HFC HollyFrontier Corp
+KMI Kinder Morgan
+MRO Marathon Oil Corp.
+MPC Marathon Petroleum
+NOV NOV Inc.
+OXY Occidental Petroleum
+OKE Oneok
+PSX Phillips 66
+PXD Pioneer Natural Resources
+SLB Schlumberger Ltd.
+VLO Valero Energy
+WMB Williams Companies
