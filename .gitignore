@@ -1,0 +1,5 @@
+# Exlcluding virtual environments
+.venv
+venv
+.vscode
+*.ipynb_checkpoints
