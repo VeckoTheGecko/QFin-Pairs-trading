@@ -33,36 +33,3 @@ def moving_average(prefix_sum, num_timesteps, start_timestep):
 	print(f"Sum from index {start_timestep:2.0f} to {end_timestep:2.0f} : {range_mean:.2f}")
 
 	return range_mean
-
-print("Test cases:")
-
-prices = [1,2,3,4,5,6,7,8]
-prefsum = prefix_sum_init(prices)
-print(prefsum)
-print(prices)
-print()
-
-prices_append(9, prices, prefsum)
-moving_average(prefsum, 5, 5)
-
-print()
-print(prefsum)
-print(prices)
-print()
-
-prices_append(10, prices, prefsum)
-moving_average(prefsum, 5, 5)
-moving_average(prefsum, 6, 5)
-
-print()
-print(prefsum)
-print(prices)
-print()
-
-prices_append(10, prices, prefsum)
-moving_average(prefsum, 6, 5)
-
-print()
-print(prefsum)
-print(prices)
-print()
