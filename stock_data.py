@@ -33,10 +33,13 @@ class Stock:
         df_group = df.groupby(pd.Grouper(level='time', freq=f'{period}T'))["price"].agg('mean')
         df_group.dropna(inplace=True)
         df_group = df_group.to_frame().reset_index()
-        
         return df_group
 
     def all_by_industry():
+        """
+        return dictionary of stocks by industry
+            {sector : list_of_stocks}
+        """
         sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
 
         stocks_by_industry = {}
@@ -57,11 +60,3 @@ class Stock:
 
     def __repr__(self):
         return f"<Stock='{self.name}'>"
-
-# stocks_by_industry = Stock.all_by_industry()
-# for k,v in stocks_by_industry.items():
-#     print(k)
-#     for i in v:
-#         print(f'\t{i}')
-
-#     print()
