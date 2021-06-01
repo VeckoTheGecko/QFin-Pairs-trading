@@ -3,15 +3,18 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+from process_csv import group_companies_by_sector, get_company_names
+
 print("This file uses ticker_data from Quant connect. The data is assumed to be stored in a folder 'S&P500_3monthdata/ticker_breakdown' in the root directory.\n"+ \
-      "Specify Stock.DATA_FOLDER = <new_folder> to change this folder.")
+      "Specify Stock. DATA_FOLDER = <new_folder> to change this folder.")
 
 class Stock:
     DATA_FOLDER = "S&P500_3monthdata/ticker_breakdown"
+    LIST        = [file.split(".")[0] for file in os.listdir(DATA_FOLDER)]
+
     def __init__(self, stock_name):
         self.name = stock_name
         self.file_path = os.path.join(self.DATA_FOLDER, f"{stock_name}.csv")
-        return
     
     def one_minute(self):
         df = pd.read_csv(self.file_path, names = ["time_str", "price"])
@@ -32,6 +35,19 @@ class Stock:
         df_group = df_group.to_frame().reset_index()
         
         return df_group
+
+    def all_by_industry():
+        sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
+
+        stocks_by_industry = {}
+        for sector in sector_symbols_map.keys():
+            stocks_by_industry[sector] = []
+
+        for sector, symbols in sector_symbols_map.items():
+            for symbol in symbols:
+                stocks_by_industry[sector].append(Stock(symbol))
+
+        return stocks_by_industry
     
     def five_minute(self):
         return self.any_minute(5)
@@ -41,3 +57,11 @@ class Stock:
 
     def __repr__(self):
         return f"<Stock='{self.name}'>"
+
+# stocks_by_industry = Stock.all_by_industry()
+# for k,v in stocks_by_industry.items():
+#     print(k)
+#     for i in v:
+#         print(f'\t{i}')
+
+#     print()
