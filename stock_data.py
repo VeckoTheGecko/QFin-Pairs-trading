@@ -5,6 +5,11 @@ from datetime import datetime
 
 import itertools
 
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.dates import DateFormatter
+import statsmodels.tsa.stattools as ts
+
 from process_csv import group_companies_by_sector, get_company_names
 
 print("This file uses ticker_data from Quant connect. The data is assumed to be stored in a folder 'S&P500_3monthdata/ticker_breakdown' in the root directory.\n"+ \
@@ -58,25 +63,44 @@ class Stock:
         sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
         return list(sector_symbols_map.keys())
 
-    def cointegration(s1, s2):
+    def cointegration(df1, df2):
         """
         return the p value of cointegration between 2 stocks
+        I doubt this returns the correct result: this is just a placeholder
         """
+        _, p_value, _=ts.coint(df1[df1.columns[1]],df2[df2.columns[1]])
 
-        return 0.04
+        return p_value
 
     def analyze_industries(industries_to_analyze=[], p_value=0.05):
         stocks_by_industry  = Stock.all_by_industry()
         relevant_stocks     = {k : v for k, v in stocks_by_industry.items() if k in industries_to_analyze}
 
+        def normalise(array):
+            return array-np.mean(array)
+
         for industry, stocklist in relevant_stocks.items():
-            print(f'\n\n{industry}')
-            for i in itertools.combinations(stocklist, 2):
+            for i in itertools.combinations(stocklist[:2], 2):
                 i = sorted(i, key=lambda x: x.name)
                 stock1, stock2 = i
 
-                # filename = f'{significance}_{stock1.name}_{stock2.name}'
-                print(stock1, stock2)
+                df1 = pd.read_csv(stock1.file_path)
+                df2 = pd.read_csv(stock2.file_path)
+
+                p_val = Stock.cointegration(df1, df2)
+                filename = f'comparison_tests/{industry}/{p_val:1.4f}_{stock1.name}_{stock2.name}.png'
+
+                fig, ax = plt.subplots()
+
+                ax.plot(normalise(df1[df1.columns[1]][:1000]))
+                ax.plot(normalise(df2[df2.columns[1]][:1000]))
+
+                fig.savefig(filename)
+
+
+
+
+
     
     def five_minute(self):
         return self.any_minute(5)

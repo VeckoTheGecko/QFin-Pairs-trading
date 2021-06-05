@@ -4,8 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# import itertools
-
 from stock_data import Stock
 
 if __name__ == "__main__":
