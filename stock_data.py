@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
+import itertools
+
 from process_csv import group_companies_by_sector, get_company_names
 
 print("This file uses ticker_data from Quant connect. The data is assumed to be stored in a folder 'S&P500_3monthdata/ticker_breakdown' in the root directory.\n"+ \
@@ -51,6 +53,30 @@ class Stock:
                 stocks_by_industry[sector].append(Stock(symbol))
 
         return stocks_by_industry
+
+    def all_industries():
+        sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
+        return list(sector_symbols_map.keys())
+
+    def cointegration(s1, s2):
+        """
+        return the p value of cointegration between 2 stocks
+        """
+
+        return 0.04
+
+    def analyze_industries(industries_to_analyze=[], p_value=0.05):
+        stocks_by_industry  = Stock.all_by_industry()
+        relevant_stocks     = {k : v for k, v in stocks_by_industry.items() if k in industries_to_analyze}
+
+        for industry, stocklist in relevant_stocks.items():
+            print(f'\n\n{industry}')
+            for i in itertools.combinations(stocklist, 2):
+                i = sorted(i, key=lambda x: x.name)
+                stock1, stock2 = i
+
+                # filename = f'{significance}_{stock1.name}_{stock2.name}'
+                print(stock1, stock2)
     
     def five_minute(self):
         return self.any_minute(5)

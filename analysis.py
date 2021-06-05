@@ -1,0 +1,12 @@
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# import itertools
+
+from stock_data import Stock
+
+if __name__ == "__main__":
+	Stock.analyze_industries(industries_to_analyze=["Information Technology", "Communication Services", "Industrials"])
