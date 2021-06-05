@@ -72,17 +72,33 @@ class Stock:
 
         return p_value
 
-    def analyze_industries(industries_to_analyze=[], p_value=0.05):
+    def analyze_industries(industries_to_analyze=[], p_value=0.05, verbose=True):
         stocks_by_industry  = Stock.all_by_industry()
         relevant_stocks     = {k : v for k, v in stocks_by_industry.items() if k in industries_to_analyze}
 
         def normalise(array):
             return array-np.mean(array)
 
+        if verbose:
+            nitems = sum([len(sl) for sl in relevant_stocks.values()])
+            n = 0
+
         for industry, stocklist in relevant_stocks.items():
-            for i in itertools.combinations(stocklist[:2], 2):
+            for i in itertools.combinations(stocklist, 2):
                 i = sorted(i, key=lambda x: x.name)
                 stock1, stock2 = i
+
+                if verbose:
+                    n += 1
+                    combs = f'({n}/{nitems})'
+                    names = f'{stock1.name:4} and {stock2.name:4}'
+
+                    combs = f'{combs:16}'
+                    names = f'{names:24}'
+
+                    prgrs = f'{names}{combs}'
+
+                    print(prgrs, end='\r')
 
                 df1 = pd.read_csv(stock1.file_path)
                 df2 = pd.read_csv(stock2.file_path)
@@ -96,11 +112,6 @@ class Stock:
                 ax.plot(normalise(df2[df2.columns[1]][:1000]))
 
                 fig.savefig(filename)
-
-
-
-
-
     
     def five_minute(self):
         return self.any_minute(5)
