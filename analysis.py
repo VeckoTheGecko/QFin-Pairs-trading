@@ -6,5 +6,7 @@ from datetime import datetime
 
 from stock_data import Stock
 
+import sys
+
 if __name__ == "__main__":
-	Stock.analyze_industries(industries_to_analyze=Stock.all_industries())
+	Stock.analyze_industries(industries_to_analyze=sys.argv[1:])#Stock.all_industries())

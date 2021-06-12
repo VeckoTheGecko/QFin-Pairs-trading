@@ -22,6 +22,9 @@ class Stock:
     def __init__(self, stock_name):
         self.name = stock_name
         self.file_path = os.path.join(self.DATA_FOLDER, f"{stock_name}.csv")
+
+        self.pricedata = self.any_minute(10)
+        self.plotdata = self.pricedata[:10000]
     
     def one_minute(self):
         df = pd.read_csv(self.file_path, names = ["time_str", "price"])
@@ -40,6 +43,7 @@ class Stock:
         df_group = df.groupby(pd.Grouper(level='time', freq=f'{period}T'))["price"].agg('mean')
         df_group.dropna(inplace=True)
         df_group = df_group.to_frame().reset_index()
+
         return df_group
 
     def all_by_industry():
@@ -47,15 +51,20 @@ class Stock:
         return dictionary of stocks by industry
             {sector : list_of_stocks}
         """
+        print("\tGetting industry metadata")
         sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
 
+        print("\tInitializing industry lists")
         stocks_by_industry = {}
         for sector in sector_symbols_map.keys():
             stocks_by_industry[sector] = []
 
+        print("\tPopulating industry lists")
         for sector, symbols in sector_symbols_map.items():
             for symbol in symbols:
                 stocks_by_industry[sector].append(Stock(symbol))
+
+        print("\tFinished industry mapping")
 
         return stocks_by_industry
 
@@ -63,17 +72,20 @@ class Stock:
         sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
         return list(sector_symbols_map.keys())
 
-    def cointegration(df1, df2):
+    def cointegration(price1, price2):
         """
         return the p value of cointegration between 2 stocks
         I doubt this returns the correct result: this is just a placeholder
         """
-        _, p_value, _=ts.coint(df1[df1.columns[1]],df2[df2.columns[1]])
+        _, p_value, _=ts.coint(price1, price2)
 
         return p_value
 
     def analyze_industries(industries_to_analyze=[], p_value=0.05, verbose=True):
+        print("Getting metadata")
         stocks_by_industry  = Stock.all_by_industry()
+
+        print("Filtering relevant stocks")
         relevant_stocks     = {k : v for k, v in stocks_by_industry.items() if k in industries_to_analyze}
 
         def normalise(array):
@@ -83,6 +95,9 @@ class Stock:
             nitems = sum([len(sl) for sl in relevant_stocks.values()])
             n = 0
 
+        significant_pairs = []
+
+        print("Processing stocks")
         for industry, stocklist in relevant_stocks.items():
             for i in itertools.combinations(stocklist, 2):
                 i = sorted(i, key=lambda x: x.name)
@@ -100,18 +115,23 @@ class Stock:
 
                     print(prgrs, end='\r')
 
-                df1 = pd.read_csv(stock1.file_path)
-                df2 = pd.read_csv(stock2.file_path)
+                p_val = Stock.cointegration(stock1.pricedata, stock2.pricedata)
 
-                p_val = Stock.cointegration(df1, df2)
+                if p_val > 0.05:
+                    continue
+
+                significant_pairs.append((stock1, stock2))
+
                 filename = f'comparison_tests/{industry}/{p_val:1.4f}_{stock1.name}_{stock2.name}.png'
 
                 fig, ax = plt.subplots()
 
-                ax.plot(normalise(df1[df1.columns[1]][:1000]))
-                ax.plot(normalise(df2[df2.columns[1]][:1000]))
+                ax.plot(normalise(stock1.plotdata))
+                ax.plot(normalise(stock2.plotdata))
 
                 fig.savefig(filename)
+
+        print(significant_pairs)
     
     def five_minute(self):
         return self.any_minute(5)
