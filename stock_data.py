@@ -23,7 +23,7 @@ class Stock:
         self.name = stock_name
         self.file_path = os.path.join(self.DATA_FOLDER, f"{stock_name}.csv")
 
-        self.pricedata = self.any_minute(10)
+        self.pricedata = self.any_minute(20).loc[:,'price']
         self.plotdata = self.pricedata[:10000]
     
     def one_minute(self):
@@ -117,7 +117,7 @@ class Stock:
 
                 p_val = Stock.cointegration(stock1.pricedata, stock2.pricedata)
 
-                if p_val > 0.05:
+                if p_val > p_value:
                     continue
 
                 significant_pairs.append((stock1, stock2))
