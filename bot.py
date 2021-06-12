@@ -62,12 +62,11 @@ class PairsTrader(QCAlgorithm):
         self.SetStartDate(2021, 4, 2)   # Set Start Date
         self.SetCash(100000)            # Set Strategy Cash
 
-        # self.long_position  = False   # self.Portfolio.Invested keeps track of these?
-        # self.short_position = False
-
         self.past_intervals = 120   # Careful of bugs
-        self.bin_size       = 10
+        self.bin_size       = 5
         self.z_threshold    = 2.0
+
+        self.iterations     = -1
 
         self.pairs = (
             ('BKR','OKE'),
@@ -103,10 +102,7 @@ class PairsTrader(QCAlgorithm):
             self.AddEquity(symbol, Resolution.Minute)
 
         price_map = self.history_map(self.pairs)
-        self.pairs = sorted(self.pairs, key=lambda pair: self.least_squares_residuals(pair[0], pair[1], price_map))[:3]
-
-        self.Debug(self.pairs)
-        self.Quit()
+        self.pairs = sorted(self.pairs, key=lambda pair: self.least_squares_residuals(pair[0], pair[1], price_map))[:4]
 
     def stock_history(self, symbols):
         return self.History(symbols, self.past_intervals*self.bin_size, Resolution.Minute)
@@ -132,14 +128,8 @@ class PairsTrader(QCAlgorithm):
 
         for symbol in symbols:
             minute_arr = np.array(histories["close"].loc[symbol])
-            average_arr = np.mean(minute_arr.reshape(-1, 5), axis=1)
+            average_arr = np.mean(minute_arr.reshape(-1, self.bin_size), axis=1)
             hist_map[symbol] = average_arr
-
-            # self.Debug(len(average_arr))
-            # self.Debug(len(minute_arr))
-            
-            # self.Debug(hist_map[symbol])
-            # self.Quit()
 
         return hist_map
 
@@ -176,6 +166,10 @@ class PairsTrader(QCAlgorithm):
         Arguments:
             data: Slice object keyed by symbol containing the stock data
         '''
+        self.iterations += 1
+        if (self.iterations % (3 * self.bin_size)) != 0:
+            return
+
         pairs = self.get_trading_pairs()
         histories = self.history_map(pairs)
 
