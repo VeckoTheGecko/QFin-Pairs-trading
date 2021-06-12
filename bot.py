@@ -62,21 +62,54 @@ class PairsTrader(QCAlgorithm):
         self.SetStartDate(2021, 4, 2)   # Set Start Date
         self.SetCash(100000)            # Set Strategy Cash
 
-        self.AddEquity("EOG", Resolution.Hour)
-        self.AddEquity("COP", Resolution.Hour)
-
         # self.long_position  = False   # self.Portfolio.Invested keeps track of these?
         # self.short_position = False
 
-        self.past_intervals = 600   # Careful of bugs
+        self.past_intervals = 120   # Careful of bugs
+        self.bin_size       = 10
         self.z_threshold    = 2.0
 
         self.pairs = (
-            ("EOG", "COP"),
+            ('BKR','OKE'),
+            ('CVX','XOM'),
+            ('CVX','PXD'),
+            ('COP','FANG'),
+            ('COP','EOG'),
+            ('COP','HAL'),
+            ('COP','PXD'),
+            ('FANG','XOM'),
+            ('FANG','HAL'),
+            ('FANG','PXD'),
+            ('EOG','XOM'),
+            ('EOG','HAL'),
+            ('EOG','HES'),
+            ('EOG','NOV'),
+            ('EOG','OXY'),
+            ('EOG','OKE'),
+            ('EOG','PSX'),
+            ('EOG','SLB'),
+            ('XOM','PXD'),
+            ('HAL','PXD'),
+            ('HFC','VLO'),
+            ('MPC','PSX'),
+            ('MPC','VLO'),
+            ('NOV','OKE'),
+            ('NOV','SLB'),
+            ('OXY','PXD'),
+            ('PXD','VLO')
         )
 
+        for symbol in self.unique_symbols(self.pairs):
+            self.AddEquity(symbol, Resolution.Minute)
+
+        price_map = self.history_map(self.pairs)
+        self.pairs = sorted(self.pairs, key=lambda pair: self.least_squares_residuals(pair[0], pair[1], price_map))[:3]
+
+        self.Debug(self.pairs)
+        self.Quit()
+
     def stock_history(self, symbols):
-        return self.History(symbols, self.past_intervals, Resolution.Hour)
+        return self.History(symbols, self.past_intervals*self.bin_size, Resolution.Minute)
 
     def unique_symbols(self, pairs):
         '''
@@ -98,15 +131,35 @@ class PairsTrader(QCAlgorithm):
         hist_map = {}
 
         for symbol in symbols:
-            hist_map[symbol] = histories["close"].loc[symbol]
+            minute_arr = np.array(histories["close"].loc[symbol])
+            average_arr = np.mean(minute_arr.reshape(-1, 5), axis=1)
+            hist_map[symbol] = average_arr
+
+            # self.Debug(len(average_arr))
+            # self.Debug(len(minute_arr))
+            
+            # self.Debug(hist_map[symbol])
+            # self.Quit()
 
         return hist_map
 
     def get_trading_pairs(self):
         return self.pairs
 
-    def least_squares_regression(self, stock1, stock2):
-        pass
+    def least_squares_residuals(self, stock1, stock2, price_map):
+        '''
+        Stole this from quantconnect -- it's calculating their square residuals
+        '''
+        prices1 = price_map[stock1]
+        prices2 = price_map[stock2]
+
+        norm1 = np.array(prices1)/prices1[0]
+        norm2 = np.array(prices2)/prices2[0]
+
+        diff = norm1 - norm2
+        sq_diff = diff**2
+        
+        return np.sum(sq_diff)
 
     def get_z_score(self, stock1, stock2):
         difference = stock1 - stock2
@@ -118,10 +171,11 @@ class PairsTrader(QCAlgorithm):
 
 
     def OnData(self, data):
-        """OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
-            Arguments:
-                data: Slice object keyed by symbol containing the stock data
-        """
+        '''
+        OnData event is the primary entry point for your algorithm. Each new data point will be pumped in here.
+        Arguments:
+            data: Slice object keyed by symbol containing the stock data
+        '''
         pairs = self.get_trading_pairs()
         histories = self.history_map(pairs)
 
@@ -144,3 +198,33 @@ class PairsTrader(QCAlgorithm):
                     self.Liquidate(pair[1])
         
         # self.Quit()
+
+
+# Pairs list:
+# BKR~OKE
+# CVX~XOM
+# CVX~PXD
+# COP~FANG
+# COP~EOG
+# COP~HAL
+# COP~PXD
+# FANG~XOM
+# FANG~HAL
+# FANG~PXD
+# EOG~XOM
+# EOG~HAL
+# EOG~HES
+# EOG~NOV
+# EOG~OXY
+# EOG~OKE
+# EOG~PSX
+# EOG~SLB
+# XOM~PXD
+# HAL~PXD
+# HFC~VLO
+# MPC~PSX
+# MPC~VLO
+# NOV~OKE
+# NOV~SLB
+# OXY~PXD
+# PXD~VLO
