@@ -158,7 +158,9 @@ def test(manual=True):
     sellpoints = []
     sellprices = []
 
+    print(f"endtime: {bot.end_time}")
 
+    plt.ion()
 
     while True:
         if halt:
@@ -175,7 +177,7 @@ def test(manual=True):
 
             currtime = int(output['time'])
 
-            print(f'{currtime}:')
+            print(f'{currtime}:', end="\r")
 
             if output['finished']:
                 halt = True
@@ -188,14 +190,16 @@ def test(manual=True):
                 if output['trading'][:3] == 'BUY':
                     buypoints.append(currtime)
                     buyprices.append(p1)
+                    # pass
 
-                    print('bought')
+                    # print('bought')
 
-                elif output['trading'] == 'LIQUIDATE':
-                    sellpoints.append(currtime)
-                    sellprices.append(p1)
+                else:
+                    # sellpoints.append(currtime)
+                    # sellprices.append(p1)
 
-                    print('sold')
+                    pass
+                    # print('sold')
 
             continue
 
