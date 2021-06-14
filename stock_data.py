@@ -23,7 +23,7 @@ class Stock:
         self.name = stock_name
         self.file_path = os.path.join(self.DATA_FOLDER, f"{stock_name}.csv")
 
-        self.pricedata = self.any_minute(20).loc[:,'price']
+        self.pricedata = self.any_minute(1).loc[:,'price']
         self.plotdata = self.pricedata[:10000]
     
     def one_minute(self):
