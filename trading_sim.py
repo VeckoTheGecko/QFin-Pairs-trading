@@ -7,14 +7,17 @@ import matplotlib.pyplot as plt
 # num_mins = 24180
 
 class BotBase:
+    # Buy but negative
     def Sell(self, stockNumber, volume=1):
         self.bank                       += volume * self.prices[stockNumber][self.time]
         self.stocksOwned[stockNumber]   -= volume
 
+    # Sell but negative
     def Buy(self, stockNumber, volume=1):
         self.bank                       -= volume * self.prices[stockNumber][self.time]
         self.stocksOwned[stockNumber]   += volume
 
+    # Sets everything to 0 through buying or selling
     def Liquidate(self, stockNumber):
         volume  = self.stocksOwned[stockNumber]
         price   = self.prices[stockNumber][self.time]
@@ -24,6 +27,7 @@ class BotBase:
         netchange = volume * price
         self.bank += netchange
         
+    # for the output, don't worry about this
     def output_init(self):
         self.output                 = {}
 
@@ -39,8 +43,8 @@ class FakeBot(BotBase):
         self.Initialize(stocks)
 
     def Initialize(self, stocks):
-        self.past_intervals = 12
-        self.time           = self.past_intervals
+        self.past_intervals = 12    # how many previous datapoints do you consider for calculations
+        self.time           = self.past_intervals # current index of the time
         self.end_time       = min([len(i.pricedata) - self.past_intervals for i in stocks])
 
         self.z_threshold    = 2.0
@@ -135,7 +139,9 @@ class FakeBot(BotBase):
         
 
 def get_subset_stocks():
-    stocklist = ['LNC', 'MET'] # add stocks here
+    # 'ADBE', 'IBM
+    # 'AMD', 'CDNS'
+    stocklist = ['AMD', 'CDNS'] # add stocks here
     stocks = [Stock(i) for i in stocklist]
 
     return stocks
