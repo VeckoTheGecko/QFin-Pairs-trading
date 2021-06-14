@@ -49,7 +49,7 @@ class FakeBot(BotBase):
         self.prices         = [s.pricedata for s in self.stocks]
         
         self.Invested       = False
-        self.bank           = 10
+        self.bank           = 100
         self.stocksOwned    = [0 for i in self.stocks]
 
         # self.output = {}
@@ -79,19 +79,22 @@ class FakeBot(BotBase):
 
         trading = 'no'
 
+        flat_amt = 10
+        ratio = flat_amt * (self.prices[0][self.time] / self.prices[1][self.time])
+
         if abs(z_score) > self.z_threshold:
             if not self.Invested:
                 self.Invested = True
                 # Need to determine buy ratio
                 if z_score > 0.0:
                     trading = f'BUY {self.stocks[1]}, SELL {self.stocks[0]}'
-                    self.Sell(0,1)
-                    self.Buy(1, 1)
+                    self.Sell(0,flat_amt)
+                    self.Buy(1, ratio)
 
                 else:
                     trading = f'SELL {self.stocks[1]}, BUY {self.stocks[0]}'
-                    self.Sell(1,1)
-                    self.Buy(0, 1)
+                    self.Sell(1,ratio)
+                    self.Buy(0, flat_amt)
         elif abs(z_score) < self.z_threshold / 2:
             if self.Invested:
                 trading = "LIQUIDATE"
@@ -132,7 +135,7 @@ class FakeBot(BotBase):
         
 
 def get_subset_stocks():
-    stocklist = ['EOG', 'COP'] # add stocks here
+    stocklist = ['LNC', 'MET'] # add stocks here
     stocks = [Stock(i) for i in stocklist]
 
     return stocks
@@ -155,13 +158,8 @@ def test(manual=True):
     print(initial_bank)
     bank      = np.zeros(bot.end_time + 1)
 
-    print("oh")
     for stock in stocks:
-        print("wow")
         plt.plot(time_ints, np.array(stock.pricedata[:bot.end_time]))
-        print("geez")
-
-    print("oh boy")
 
     buypoints = []
     buyprices = []
@@ -229,8 +227,6 @@ def test(manual=True):
 
     plt.savefig("plot_data.png")
     print("figure saved")
-
-    # print(stocks[0].pricedata)
 
 if __name__ == '__main__':
     test(manual=True)
