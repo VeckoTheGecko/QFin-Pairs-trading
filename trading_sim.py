@@ -190,16 +190,10 @@ def test(manual=True):
                 if output['trading'][:3] == 'BUY':
                     buypoints.append(currtime)
                     buyprices.append(p1)
-                    # pass
-
-                    # print('bought')
 
                 else:
-                    # sellpoints.append(currtime)
-                    # sellprices.append(p1)
-
-                    pass
-                    # print('sold')
+                    sellpoints.append(currtime)
+                    sellprices.append(p1)
 
             continue
 
