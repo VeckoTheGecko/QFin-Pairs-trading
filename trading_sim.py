@@ -3,6 +3,7 @@ import random as rand
 import itertools as iter
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import stats 
 
 # num_mins = 24180
 
@@ -13,7 +14,7 @@ class FakeBot:
     def Initialize(self, stocks):
         self.past_intervals = 30
         self.time           = self.past_intervals
-        self.end_time       = min([len(i.pricedata) - self.past_intervals for i in stocks])
+        self.end_time       = min([20000])
 
         self.z_threshold    = 2.0
 
@@ -21,7 +22,7 @@ class FakeBot:
         self.prices         = [s.pricedata for s in self.stocks]
         
         self.Invested       = False
-        self.bank           = 100000
+        self.bank           = 0
         self.stocksOwned    = [0 for i in self.stocks]
 
         # self.output = {}
@@ -30,16 +31,19 @@ class FakeBot:
 
     def Sell(self, stockNumber, volume=1):
         self.bank                       += volume * self.prices[stockNumber][self.time]
+        plt.scatter(self.time,self.prices[stockNumber][self.time], color = "green", marker = "1")
         self.stocksOwned[stockNumber]   -= volume
 
     def Buy(self, stockNumber, volume=1):
         self.bank                       -= volume * self.prices[stockNumber][self.time]
+        plt.scatter(self.time,self.prices[stockNumber][self.time], color = "red", marker = "2")
         self.stocksOwned[stockNumber]   += volume
 
     def Liquidate(self, stockNumber):
         volume  = self.stocksOwned[stockNumber]
         price   = self.prices[stockNumber][self.time]
 
+        #plt.scatter(self.time, 0, '--b', linewidth = 0.1)
         self.stocksOwned[stockNumber] = 0
 
         netchange = volume * price
@@ -67,14 +71,21 @@ class FakeBot:
             if not self.Invested:
                 self.Invested = True
                 # Need to determine buy ratio
-                if z_score > 0.0:
-                    self.Sell(0,1)
-                    self.Buy(1, 1)
-                    trading = f'BUY {self.stocks[1]}, SELL {self.stocks[0]}'
-                else:
-                    trading = f'SELL {self.stocks[1]}, BUY {self.stocks[0]}'
-                    self.Sell(1,1)
-                    self.Buy(0, 1)
+                hist1 = np.array(self.history(self.prices[0],10))
+                hist2 = np.array(self.history(self.prices[1],10))
+                diff = hist1-hist2
+                slope, _, _, _, _ = stats.linregress(np.arange(len(diff)), diff)
+                if abs(slope) <0.2:
+                  plt.scatter(self.time,10*slope, color = "black", marker = "x")
+                  if z_score > 0.0:
+                      self.Sell(0,1)
+                      self.Buy(1, 1)
+                      trading = f'BUY {self.stocks[1]}, SELL {self.stocks[0]}'
+                      
+                  else:
+                      trading = f'SELL {self.stocks[1]}, BUY {self.stocks[0]}'
+                      self.Sell(1,1)
+                      self.Buy(0, 1)
         else:
             if self.Invested:
                 trading = "LIQUIDATE"
@@ -109,8 +120,8 @@ class FakeBot:
         self.output['print'] = self.output.get('print', []) + [obj]
 
 
-    def history(self, data_list):
-        return data_list[self.time - self.past_intervals: self.time]
+    def history(self, data_list, interval = 30):
+        return data_list[self.time - interval: self.time]
 
     def get_z_score(self, stockA_data, stockB_data):
         stockA = np.array(self.history(stockA_data))
@@ -138,8 +149,12 @@ def stock_choice(stocks, some_number):
 def two_stocks(n=0):
     return stock_choice(get_subset_stocks(), n)
 
+def getmoney(self):
+  return self.bank
+
 def test(manual=True):
     stocks = two_stocks()
+    bank = []
     bot = FakeBot(stocks)
     halt = False
     print("ah")
@@ -149,6 +164,7 @@ def test(manual=True):
         print("wow")
         plt.plot(time_ints, np.array(stock.pricedata[:bot.end_time]))
         print("geez")
+    plt.plot(time_ints, np.array(stocks[0].pricedata[:bot.end_time])-np.array(stocks[1].pricedata[:bot.end_time]))
 
     print("oh boy")
 
@@ -160,7 +176,7 @@ def test(manual=True):
 
     print(f"endtime: {bot.end_time}")
 
-    plt.ion()
+    #plt.ion()
 
     while True:
         if halt:
@@ -189,12 +205,12 @@ def test(manual=True):
 
                 if output['trading'][:3] == 'BUY':
                     buypoints.append(currtime)
-                    buyprices.append(p1)
+                    buyprices.append(0)
 
                 else:
                     sellpoints.append(currtime)
-                    sellprices.append(p1)
-
+                    sellprices.append(1)
+            bank.append(bot.bank)
             continue
 
             if output['print'] is None or output['print'] == []:
@@ -204,9 +220,12 @@ def test(manual=True):
                 name = ''# obj.__name__
                 print(f'\t{name} :: {obj}')
 
-    plt.scatter(buypoints, buyprices, color = "red", marker = "x")
-    plt.scatter(sellpoints, sellprices, color = "green", marker = "x")
+    #plt.scatter(buypoints, buyprices, color = "red", marker = "x")
+    #plt.scatter(sellpoints, sellprices, color = "green", marker = "x")
     print("bot terminated")
+    print(len(sellpoints))
+    print(len(buypoints))
+    plt.plot(np.arange(len(bank)),bank)
     plt.savefig("plot_data.png")
     print("figure saved")
 
