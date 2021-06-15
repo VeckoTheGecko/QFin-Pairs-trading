@@ -15,22 +15,14 @@ class PairsTradingAlgorithm(QCAlgorithm):
     
     def Initialize(self):
         
-        self.SetStartDate(2020,3,2)
-        # self.SetEndDate(2021,3,18)
+        # start/end dates can be set with these functions
+        self.SetStartDate(2013,3,2)
+        self.SetEndDate(2021,3,18)
+
         self.SetCash(100000)
-        
-        self.p_value = 0.05
-        
-        # SYM1 = 'MA'
-        # SYM2 = 'V'
-        
-        # SYM1 = 'AAPL'
-        # SYM2 = 'QCOM'
-        
-        # SYM1 = 'ADBE'
-        # SYM2 = 'APH'
        
-        some_pairs = [
+       # a listo f pairs we have determined are cointegrated
+        cointegrated_pairs = [
             ('BKR','OKE'),
             ('CVX','XOM'),
             ('CVX','PXD'),
@@ -60,42 +52,52 @@ class PairsTradingAlgorithm(QCAlgorithm):
             ('PXD','VLO'),
         ]
         
-        s = set()
-        for i in some_pairs:
+        # tickers includes all elements in cointegrated pairs but unique
+        tickers = set()
+        for i in cointegrated_pairs:
             for j in i:
-                s.add(j)
+                tickers.add(j)
             
-        tickers = list(s) 
+        tickers = list(tickers)
         
+        # threshold standard deviations to do a trade
         self.threshold = 2
+
+        # all needed past equities
         self.symbols = []
         for i in tickers:
             self.symbols.append(self.AddEquity(i, Resolution.Daily).Symbol)
         
-        self.pairs = {}
-        self.formation_period = 252
+        self.formation_period = 252     # Window of history to consider fo calculations
+                                        # i.e. moving average
 
+        # map: stock --> history price
         self.history_price = {}
-        for symbol in self.symbols:
+        for symbol in self.symbols: # add all equities to the stock object
             hist = self.History([symbol], self.formation_period+1, Resolution.Daily)
+
+            # don't trade stocks that don't exist?
+            #       !!!
             if hist.empty: 
                 self.symbols.remove(symbol)
+
             else:
                 self.history_price[str(symbol)] = deque(maxlen=self.formation_period)
                 for tuple in hist.loc[str(symbol)].itertuples():
                     self.history_price[str(symbol)].append(float(tuple.close))
+
                 if len(self.history_price[str(symbol)]) < self.formation_period:
                     self.symbols.remove(symbol)
                     self.history_price.pop(str(symbol))
 
-        self.symbol_pairs = list(it.combinations(self.symbols, 2))  
-        # Add the benchmark
-        # self.AddEquity(SYM1, Resolution.Daily)
-        # self.AddEquity(SYM2, Resolution.Daily) 
+        # all combinations of symbols
+        self.symbol_pairs = list(it.combinations(self.symbols, 2))
+
+
         self.Schedule.On(self.DateRules.MonthStart("BKR"), self.TimeRules.AfterMarketOpen("BKR"), self.Rebalance)
         self.count = 0
         self.sorted_pairs = None
-        # self.coint_pairs  = self.symbol_pairs
+        self.coint_pairs  = self.symbol_pairs
         
         
     def OnData(self, data):
@@ -105,12 +107,17 @@ class PairsTradingAlgorithm(QCAlgorithm):
                 self.history_price[str(symbol)].append(float(data[symbol].Close)) 
         if self.sorted_pairs is None: return
         
+        # look for trades between all pairs
         for i in self.sorted_pairs:
+
             # calculate the spread of two price series
             spread = np.array(self.history_price[str(i[0])]) - np.array(self.history_price[str(i[1])])
             mean = np.mean(spread)
             std = np.std(spread)
+            
+            # calculate the ratios to buy and sell in
             ratio = self.Portfolio[i[0]].Price / self.Portfolio[i[1]].Price
+
             # long-short position is opened when pair prices have diverged by two standard deviations
             if spread[-1] > mean + self.threshold * std:
                 if not self.Portfolio[i[0]].Invested and not self.Portfolio[i[1]].Invested:
@@ -124,41 +131,39 @@ class PairsTradingAlgorithm(QCAlgorithm):
                     self.Sell(i[1], quantity) 
                     self.Buy(i[0], floor(ratio*quantity))  
                     
-            # the position is closed when prices revert back
+            # the position is closed when prices revert back -- all assets are liquidated
             elif self.Portfolio[i[0]].Invested and self.Portfolio[i[1]].Invested and abs(spread[-1]) < abs(mean - self.threshold * std) / 2:
                     self.Liquidate(i[0]) 
-                    self.Liquidate(i[1])                
-                    
-    def cointegrated(self, stocks):
-        history = (self.history_price[str(stocks[0])],  self.history_price[str(stocks[1])])
-        # history = (history[0][-self.formation_period//2:], history[1][-self.formation_period//2:])
-        p_val = ts.coint(*history)[1]
-        
-        return p_val  <= self.p_value
+                    self.Liquidate(i[1])
 
     def Rebalance(self):
-        # schedule the event to fire every half year to select pairs with the smallest historical distance
-        
-        if self.count % 6 == 0:
+
+        # schedule the event to run every 3 months to select pairs with the smallest historical distance
+        if self.count % 3 == 0:
             distances = {}
-            # self.Debug("one")
             
-            # if self.count % 100 == 0:
-            #     self.count_pairs = list(
-            #         filter(
-            #             lambda s: self.cointegrated(s),
-            #             self.symbol_pairs
-            #             )
-            #         )
-                
-            # self.Debug("two")
-                
-            for i in self.symbol_pairs:
-                distances[i] = Pair(i[0], i[1], self.history_price[str(i[0])],  self.history_price[str(i[1])]).distance()
-                self.sorted_pairs = sorted(distances, key = lambda x: distances[x])[:4]
+            for i in self.coint_pairs:
+
+                # if the pair is valid and the API can provide the data for each equity do so
+                # otherwise skip the pair
+                try:
+                    distances[i] = Pair(i[0], i[1], self.history_price[str(i[0])],  self.history_price[str(i[1])]).distance()
+                    self.sorted_pairs = sorted(distances, key = lambda x: distances[x])[:4]
+                except:
+                    continue
+            
+            # list of all stocks being traded: contains duplicates but this is trivial
+            trading_pairs = [pair[0] for pair in self.sorted_pairs] + [pair[1] for pair in self.sorted_pairs]
+                 
+            # if a stock previously being traded is no longer being traded liquidate it
+            for stock in self.Portfolio.keys():
+                if stock not in trading_pairs:
+                    self.Liquidate(stock)
         
         self.count += 1
-            
+      
+
+# 2 symbols and their corresponding prices 
 class Pair:
     def __init__(self, symbol_a, symbol_b, price_a, price_b):
         self.symbol_a = symbol_a
