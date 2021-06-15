@@ -3,6 +3,7 @@ import random as rand
 import itertools as iter
 import numpy as np
 import matplotlib.pyplot as plt
+import statsmodels
 
 # num_mins = 24180
 
@@ -43,9 +44,9 @@ class FakeBot(BotBase):
         self.Initialize(stocks)
 
     def Initialize(self, stocks):
-        self.past_intervals = 12    # how many previous datapoints do you consider for calculations
+        self.past_intervals = 30    # how many previous datapoints do you consider for calculations
         self.time           = self.past_intervals # current index of the time
-        self.end_time       = min([len(i.pricedata) - self.past_intervals for i in stocks])
+        self.end_time       = 1199 #min([len(i.pricedata) - self.past_intervals for i in stocks])
 
         self.z_threshold    = 2.0
 
@@ -68,9 +69,18 @@ class FakeBot(BotBase):
 
     def OnData(self):
         self.time += 1
+        plt.scatter(self.time, self.prices[0][self.time],color = 'black', s = 1)
+        plt.scatter(self.time, self.prices[1][self.time],color = 'black', s = 1)
         self.output_init()
-
-        time_ints = np.arange(len(self.prices[0]))
+        interval = self.time % 30
+        if interval == 0 and not self.Invested:
+          #if self.Invested:
+          '''trading = "LIQUIDATE"
+          self.Invested = False
+          self.Liquidate(0)
+          self.Liquidate(1)'''
+          self.update_stocks()
+          self.prices = [s.pricedata for s in self.stocks]
 
         if self.time == self.end_time:
             self.output['finished'] = True
@@ -121,8 +131,8 @@ class FakeBot(BotBase):
         return self.output
             
 
-    def history(self, data_list):
-        return data_list[self.time - self.past_intervals: self.time]
+    def history(self, data_list, time_int = 30):
+        return data_list[self.time - time_int: self.time]
 
     def get_z_score(self, stockA_data, stockB_data):
         stockA = np.array(self.history(stockA_data))
@@ -136,12 +146,30 @@ class FakeBot(BotBase):
         z = (diff[-1]-mean)/SD 
         return z
 
+    def update_stocks(self):
+        stocklist = [
+          'COP','FANG','EOG','HAL','PXD']
+        p_value = 1
+        stockA = None
+        stockB = None
+        for i in range(len(stocklist)):
+          for j in range(i+1, len(stocklist)):
+            _, p, _ = statsmodels.tsa.stattools.coint(self.history(Stock(stocklist[i]).pricedata,60),self.history(Stock(stocklist[j]).pricedata,60))
+            if p < p_value:
+              print(stocklist[i])
+              print(stocklist[j])
+              stockA = Stock(stocklist[i])
+              stockB = Stock(stocklist[j])
+              p_value = p
+        self.stocks = [stockA, stockB]
+      
+
         
 
 def get_subset_stocks():
     # 'ADBE', 'IBM
     # 'AMD', 'CDNS'
-    stocklist = ['AMD', 'CDNS'] # add stocks here
+    stocklist = ['COP', 'EOG'] # add stocks here
     stocks = [Stock(i) for i in stocklist]
 
     return stocks
@@ -159,13 +187,11 @@ def test(manual=True):
     halt = False
     print("ah")
 
-    time_ints = np.arange(bot.end_time)
     initial_bank = bot.bank
     print(initial_bank)
     bank      = np.zeros(bot.end_time + 1)
 
-    for stock in stocks:
-        plt.plot(time_ints, np.array(stock.pricedata[:bot.end_time]))
+    
 
     buypoints = []
     buyprices = []
@@ -233,6 +259,6 @@ def test(manual=True):
 
     plt.savefig("plot_data.png")
     print("figure saved")
-
+    print("Net profit was: ", bank[-1] - initial_bank)
 if __name__ == '__main__':
     test(manual=True)
