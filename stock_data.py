@@ -17,11 +17,16 @@ print("This file uses ticker_data from Quant connect. The data is assumed to be 
 
 class Stock:
     DATA_FOLDER = "S&P500_3monthdata/ticker_breakdown"
-    LIST        = [file.split(".")[0] for file in os.listdir(DATA_FOLDER)]
+    LIST        = [".".join(file.split(".")[:-1]) for file in os.listdir(DATA_FOLDER)]
 
     def __init__(self, stock_name):
         self.name = stock_name
         self.file_path = os.path.join(self.DATA_FOLDER, f"{stock_name}.csv")
+    
+    @classmethod
+    def all_stocks(cls):
+        """Returns a list of all the stock objects"""
+        return [cls(stock) for stock in cls.LIST]
     
     def one_minute(self):
         df = pd.read_csv(self.file_path, names = ["time_str", "price"])
@@ -62,6 +67,7 @@ class Stock:
     def all_industries():
         sector_symbols_map, symbol_company_map = group_companies_by_sector('constituents_csv.csv')
         return list(sector_symbols_map.keys())
+    
 
     def cointegration(df1, df2):
         """
